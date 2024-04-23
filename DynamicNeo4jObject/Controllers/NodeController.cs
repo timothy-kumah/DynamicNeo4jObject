@@ -1,12 +1,11 @@
 ﻿using DynamicNeo4jObject.Models;
+using DynamicNeo4jObject.Utilities;
 using Microsoft.AspNetCore.Mvc;
-using Neo4j.Driver;
 using Neo4jClient;
-using Neo4jClient.Cypher;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
-using Node = DynamicNeo4jObject.Models.Node;
+using static DynamicNeo4jObject.Utilities.Utils;
+
 
 namespace DynamicNeo4jObject.Controllers
 {
@@ -21,18 +20,26 @@ namespace DynamicNeo4jObject.Controllers
         }
 
         [HttpPost("CreateNode")]
-        public async Task<IActionResult> CreateModel(Dictionary<string,string> dto)
+        public async Task<IActionResult> CreateModel(CreateNodeRequest dto)
         {
+
             var companyName = "SomeCompany";
-            var unique_name = $"{companyName}_{dto["Name"]}";
-            var guid = Guid.NewGuid();
-            dto.Add("Id",guid.ToString());
-            dto.Add("UniqueName", unique_name);
+            var unique_name = $"{companyName}_{dto.Properties["Name"]}";
+            var guid = Guid.NewGuid().ToString();
+            dto.Properties.Add("Id",guid);
+            dto.Properties.Add("UniqueName", unique_name);
+
+            dto.Relationships.ForEach(x =>
+            {
+                x.SourceObjectLabel = unique_name;
+                x.SourceObjectId = guid;
+            });
             await _client.Cypher
                 .Create($"(n:{unique_name})")
                 .Set("n = $dynamicProperties")
+                .AssignRelationships(dto.Relationships)
                 .WithParams(new {
-                    dynamicProperties= dto
+                    dynamicProperties= dto.Properties,
                 })
                 .ExecuteWithoutResultsAsync();
 
@@ -86,13 +93,6 @@ namespace DynamicNeo4jObject.Controllers
                 return Ok(serialized);
             }
             return Ok();
-        }
-        public class LowercaseContractResolver : DefaultContractResolver
-        {
-            protected override string ResolvePropertyName(string propertyName)
-            {
-                return propertyName.ToLower();
-            }
         }
     }
 }
