@@ -68,6 +68,8 @@ namespace DynamicNeo4jObject.Controllers
         {
             var result = await _client.Cypher
             .Match($"(n:{NodeName})")
+            .Where("n.Id = $Id")
+            .WithParam("Id",Id)
              .Return(n => n.As<string>())
              .ResultsAsync;
 
@@ -83,7 +85,7 @@ namespace DynamicNeo4jObject.Controllers
 
                 return Ok(serialized);
             }
-            return null;
+            return Ok();
         }
         public class LowercaseContractResolver : DefaultContractResolver
         {
