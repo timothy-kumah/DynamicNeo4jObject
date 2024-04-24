@@ -35,9 +35,9 @@ namespace DynamicNeo4jObject.Controllers
                 x.SourceObjectId = guid;
             });
             await _client.Cypher
-                .Create($"(n:{unique_name})")
-                .Set("n = $dynamicProperties")
+                .Create($"(n:{unique_name})")               
                 .AssignRelationships(dto.Relationships)
+                .Set("n = $dynamicProperties")
                 .WithParams(new {
                     dynamicProperties= dto.Properties,
                 })

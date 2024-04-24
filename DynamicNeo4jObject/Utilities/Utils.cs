@@ -17,11 +17,22 @@ namespace DynamicNeo4jObject.Utilities
 
         public static ICypherFluentQuery AssignRelationships(this ICypherFluentQuery query, List<RelationshipObj> rels)
         {
+            var cypherQuery = query.With("n");
+            var i = 0;
+            foreach (var rel in rels)
+            {
+                cypherQuery = cypherQuery
+                    .OptionalMatch($"(relatedNode{i}:{rel.TargetObjectLabel} {{Id: '{rel.TargetObjectId}'}})")
+                    .With($"n,relatedNode{i}")
+                    .ForEach($"(ignoreMe IN CASE WHEN relatedNode{i} IS NOT NULL THEN [1] ELSE [] END | " +
+                         $"CREATE (n)-[:{rel.Label}{{From:'{rel.SourceObjectId}',To:'{rel.TargetObjectId}'}}]->(relatedNode{i}))")
+                    .With("n");
 
-            return query.With("n")
-            .OptionalMatch($"(relatedNode:{rels[0].TargetObjectLabel} {{Id: '{rels[0].TargetObjectId}'}})")
-            .Merge($"(n)-[:{rels[0].Label}{{From:'{rels[0].SourceObjectId}'," +
-                $"To:'{rels[0].TargetObjectId}'}}]->(relatedNode)");
+                    //.Create($"(n)-[:{rel.Label}{{From:'{rel.SourceObjectId}',To:'{rel.TargetObjectId}'}}]->(relatedNode{i})");
+                i++;
+            }
+
+            return cypherQuery;
         }   
     }
 }
